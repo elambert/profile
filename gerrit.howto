@@ -1,0 +1,149 @@
+== Projects currently using gerrit ==
+
+* ns_server
+** ssh://review.northscale.com:29418/ns_server.git
+** branches
+*** release - 1.0.2 - git push gerrit HEAD:refs/for/release 
+*** master - "later" - git push gerrit HEAD:refs/for/master
+* memcached
+** ssh://review.northscale.com:29418/memcached.git
+** branches
+*** for_release - 1.0.2 - git push gerrit HEAD:refs/for/for_release
+*** latest: git push gerrit HEAD:refs/for/engine
+*** There is no equivalent of a "master" branch right now.
+* ep-engine/membase
+** ssh://review.northscale.com:29418/membase.git
+** z branch: git push gerrit HEAD:refs/for/z
+** master branch: git push gerrit HEAD:refs/for/master
+* bucket_engine
+** ssh://review.northscale.com:29418/bucket_engine.git
+** branches
+*** master - "later" - git push gerrit HEAD:refs/for/master
+
+And, also, libconflate, spymemcached, vbucketmigrator (although you should log into gerrit for the full list).
+If you have any question about what branches there are on the remote: 
+
+<code>git ls-remote --heads gerrit</code>
+
+The thing to know is this:
+
+* refs/for/$branch - where you inevitably want the change to go
+* refs/heads/$branch - you will not use this, but this means bypass gerrit.
+
+For a good primer:
+
+http://en.wikibooks.org/wiki/Git/Gerrit_Code_Review#Submitting_changes_for_review
+
+== Code Workflow ==
+
+Basically, do a normal [http://progit.org/book/ch3-4.html topic branch] workflow.
+
+# First, make sure you have a remote set up for gerrit
+## git remote add gerrit ssh://review.northscale.com:29418/ns_server.git
+## git fetch gerrit
+# Create a branch.
+## git branch bug_666 gerrit/release (or master)
+## git checkout bug_666
+# Make all of the topic-specific changes on you branch.
+# git push gerrit HEAD:refs/for/release (or master, depending on where you want to put your changes)
+
+Others will go and review your code (you can also request reviews specifically in the admin UI or with git magic).
+
+== Review Workflow ==
+
+[[File:GerritOpenAll.png|right]]
+
+It's good to learn the key combinations (hit ? anywhere), but in general, you can see all of the open changes by going to All -> Open and digging through them.
+
+=== Phase 1:  Reviewable ===
+
+The submitter should go into the change's web page and add reviewers. Otherwise, it's unlikely anyone will review your code. Adding a reviewer causes the change to show up in the reviewer's "Reviewable by me" list, and they get an email.
+
+At this point, theoretically nobody's looked at stuff.  Dig around, and throw in your comments.
+
+Also, with regards to dependencies, if the fix you're reviewing depends on another fix, review the dependency first.  That is, follow the dependency link trail until you hit a fix that has no dependencies.  This helps ensure the right cherry-pick sequencing (gerritt does cherry-picking automatically for us if we do it right).
+
+It takes two points for code to be acceptable.  You all have two points.
+
+=== Phase 2:  Needs verification ===
+
+<i>It seems like we should talk about what ref to start from when pulling or cherry-picking the changes for testing. I've been using the cherry-pick command and always starting from gerrit/release or gerrit/master, since that's what gerrit will do when you submit the change. -[[User:Sean|Sean]] 00:42, 25 March 2010 (UTC)</i>
+
+You can do this at the same time as the review, but you have the ability to pull down the changes to test locally.
+
+    git checkout -b review
+    [paste the URL from the download section of the change]
+
+[[File:GerritDownload.png]]
+
+=== Phase 2.5: Rejected! ===
+
+If it's rejected:  Fix, rebase, repeat (the Change-Id will keep old comments in sync).
+
+    git checkout my-rejected-topic-branch
+    $EDITOR broken-file.erl
+    # Rebase against the current upstream, fixup changes while maintaining Change-Id
+    git rebase -i gerrit/master # or gerrit/release if you're working on something for the release branch
+    git push gerrit HEAD:refs/for/master # or refs/for/release
+
+[[File:Git-rebase-start.png|right]]
+
+The rebase session will begin with you in an editor that looks something like the one to the right:
+
+Your most recent change (fixup) will be on the bottom.  In this case the change <tt>27237db</tt> was rejected and the fix <tt>deadca7</tt> was made to clean up whatever complaints came along with the rejection.
+
+[[File:Git-rebase-move-up.png|right]]
+
+[[File:Git-rebase-finish.png|right]]
+
+'''To complete your fixup''', move the fix line directly below the change that was being fixed and change the first word from <tt>pick</tt> to <tt>fixup</tt> (which can be abbreviated to <tt>f</tt>) as shown in the image to the right.
+
+(Note that if you're running a version of git prior to 1.7, fixup will be unavailable to you and you'll need to use <tt>squash</tt> (or <tt>s</tt>) and you'll be prompted to edit further.  You'll generally want the commit message to look as it did in the first place for clarity.)
+
+At this point, your current patch should be replaced with the new, fixed up version.
+
+=== Phase 3:  Submit ===
+
+[[File:GerritGithubCommit.png|right]]
+
+Once the change is all verified, we can submit.  We're currently using cherry-pick, which means we need to be a bit careful to do this in order.  We can figure out what works best for us in the long term.
+
+Once the submit is complete, the change will automatically show up on github as follows (in this case, I wrote the code, and Steve reviewed, tested, and submitted):
+
+<br style="clear: right"/>
+
+== Initial Account Setup ==
+
+# http://review.northscale.com:8080/
+# Login using your favorite OpenID provider.
+# Send [mailto:dustin@northscale.com?subject=Hey,%20I'm%20a%20gerrit%20user me] the email address you came in with so I can add you to the NorthScale group (otherwise you'll see only a couple or fewer fixes for review (these are likely open-source fixes)).  A correctly enabled account should see lots of activity, including "closed source" fixes.
+# While you wait, go through settings and set up your ssh keys (don't forget the username here), and perhaps contact information if you'd rather use a different Email address.
+
+Note: the username setup in gerrit -> Settings -> SSH Keys (http://review.northscale.com:8080/#settings,ssh-keys) is important.  I've been bitten twice for not doing the username setup while setting up SSH keys -- SteveYen.
+
+=== Initial Project Setup (for each project) ===
+
+Next, you'll need Change-Id's in all of your commit messages.
+
+Just put the [http://review.northscale.com:8080/tools/hooks/commit-msg commit-msg] script in .git/hooks of the repository you are working with and make sure it's executable.  For example, you should have...
+
+  (MY_REPOSITORY)/.git/hooks/commit-msg
+
+You can test that you've setup the commit-msg script correctly by doing a commit and then looking at the log.  You should see a "Change-Id: [hex]" thing show up.
+
+Add a gerrit remote in each project (or just clone the gerrit git URL and use "origin" instead of "gerrit"):
+
+git remote add gerrit ssh://review.northscale.com:29418/ns_server.git
+
+Dustin used to have an alias here, but sean removed it because if you know what you're doing you can figure out how to make the alias yourself, and if you don't, you should probably type the commands out explicitly.
+
+== Behind The Scenes ==
+
+All gerrit data is backed up offsite (to a filesystem on corp-fs1) every hour, and that is, in turn, snapshotted regularly enough that losing data should be pretty hard. (via Dustin)
+
+== Gerrit From The Command-Line ==
+
+Try things like...
+
+  ssh -p 29418 review.northscale.com gerrit -h
+  ssh -p 29418 review.northscale.com gerrit show-queue
