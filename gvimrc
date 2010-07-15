@@ -1,0 +1,2 @@
+set ru
+colorscheme torte

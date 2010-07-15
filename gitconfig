@@ -1,0 +1,39 @@
+[branch]
+	autosetuprebase = always
+[branch "master"]
+	rebase = true
+[user]
+	name = Eric Lambert
+	email = eric.d.lambert@gmail.com
+[color]
+	branch = auto
+	diff = auto
+	status = auto
+	ui = auto
+	grep = always
+[core]
+	logAllRefUpdates = true
+[mergetool "filemerge"]
+	path = /Developer/Applications/Utilities/FileMerge.app/Contents/MacOS/FileMerge
+[merge]
+	tool = vimdiff
+	log = true
+[branch]
+	autosetupmerge = always
+	autosetuprebase = always
+[apply]
+	whitespace = fix
+[gc]
+	auto = 1024
+[instaweb]
+	local = false
+	httpd = webrick
+[rerere]
+	enabled = true
+[alias]
+	outgoing = log origin/master..
+[diff]
+   	renames = true
+
+[advice]
+	statushints = false

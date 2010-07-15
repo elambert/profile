@@ -1,0 +1,365 @@
+[SMF/greenline]
+
+-to control a svc use the svcadm <cmd> <svc> command. The example below restarts apache
+#sudo svcadm restart svc:/network/http:apache22
+
+-to view the properties used by a service, use the svccfg command
+el113472@satchel:/etc/apache2/2.2 $ svccfg 
+svc:> select svc:/network/http:apache22
+svc:/network/http:apache22> listprop
+
+-the service manifests files reside in /var/svc/manifest
+
+-log files for a particular service are located at /var/svc/log/<svc-name>
+
+
+[apache 22]
+
+-to restart apache via SMF, issues the following command (it can done manually with  /usr/apache2/2.2/bin/apachectl)
+#sudo svcadm restart svc:/network/http:apache22
+
+-the configuration file used to drive apache on satchel is located at /etc/apache2/2.2
+
+-log files for apached are located at /var/apache2/2.2/logs
+
+-htdocs root is /var/apache2/2.2/htdocs
+
+-how to build a 64 apache on solaris
+  % export CFLAGS="-m64";export LDFLAGS="-L/usr/apr/1.3/lib/64 -L/usr/apr-util/1.3/lib/64  -R/usr/apr/1.3/lib/64 -R/usr/apr-util/1.3/lib/64"; ./configure --enable-so --prefix=/opt/httpd-2.2.13-64
+ % make
+
+
+[hg / mercurial ]
+
+-my .hgrc file has the following
+[ui]
+username = Eric Lambert <eric.lambert@sun.com>
+
+Trond Norbye: 08:42:58
+if so, you can hg commit the changes, and do: hg export tip > patch
+Trond Norbye: 08:43:02
+and mail the patch to me :)
+
+setting up hg to work with apache
+1) download and build and build the mod_python library
+   * there is a bug in the linker that requires the compiler (cc) be /opt/SUNWspro/bin/cc so ln /opt/SunStudioExpress to /opt/SUNWspro
+   * best not build in /home/elambert if on swan so copy to a dir hosted on the local machine (say /export/home)
+   * cd <PATH_TO_UNARCHIVED_MOD_PY>/; ./configure && make && make install
+   * if the make fails due to problems with connobject.c change line 142 in the file from  !(b == APR_BRIGADE_SENTINEL(b)  to  !(b == APR_BRIGADE_SENTINEL(bb) ||   
+   * update apache load module directive as directed by the output of make install
+2) configure hg cgi as specified by this link http://www.aventinesolutions.nl/mediawiki/index.php/Quick_Tip:_Getting_Started_with_Mercurial#Configuring_Apache
+
+cloning a workspace from my laptop 
+sudo hg -v clone --remotecmd /usr/local/bin/hg ssh://elambert@129.150.17.194/Workspaces/MemcacheClientProfiling
+
+
+[ satchel ]
+
+-IP Address = 129.144.88.100
+-Router = 129.144.88.1
+-Netmask = 255.255.254.0
+-NIS Domain - it.sfbay.sun.com
+-NIS Server = mf-sfbay-01.SFBay.Sun.COM (129.145.155.170)
+-DNS 129.145.154.118 129.145.155.220 (DOMAIN SFBay.Sun.COM)
+-openDNS 208.67.222.222, 208.67.220.220
+
+
+[ faban ]
+-get the fab kit from [http://faban.sunsource.net/downloads/faban-kit-091008.tar.gz] and copy to all hosts used in your test
+-on all hosts unpack the faban kit archive in /opt
+-on all hosts change the file /opt/faban/config/SunOS/cmdmap.xml so that the <exec> member of the rsh command looks like the following  <exec>/usr/bin/ssh -n</exec> 
+-on all hists chown -R 777  /opt/faban 
+-start server /opt/faban/master/bin/startup.sh
+-create a deploy for your benchmark. The deploy jar should have all needed jars in lib/* and the xml and xhtml file in META-INF. It should look something like the following
+smacky:build elambert$ jar tf ../dist/lib/MemcacheClientProfiling-deploy.jar 
+META-INF/
+META-INF/MANIFEST.MF
+META-INF/benchmark.xml
+META-INF/config.xhtml
+META-INF/run.xml
+lib/
+lib/Spy2.2.jar
+lib/Whalin2.0.1.jar
+lib/commons-httpclient-2.0.1.jar
+lib/commons-logging.jar
+lib/fabanagents.jar
+lib/fabancommon.jar
+lib/fabandriver.jar
+lib/log4j.jar
+lib/spy-2.4.jar
+lib/MemcacheClientProfiling.jar
+smacky:build elambert$ 
+-scp deploy jar to /opt/faban/benchmarks on main host
+
+-d64 -Xmx3g -Xms256m -XX:+DisableExplicitGC
+
+
+[ dtrace ]
+-some dtrace probes can be default only be run as superuser, to grant a user access to dtrace functionality, edit /etc/user_attr to have the following
+el113472::::defaultpriv=basic,dtrace_proc, dtrace_user,dtrace_kernel
+
+-usefull dtrace based utilities on the mac, to see the whole list man -k dtrace
+ * dtruss (truss utility)
+
+
+[ java ] 
+-garbage collection can be enabled with the arg -Xloggc:/tmp/gc.log. 
+-to enable jconsole to acccess a vm start it with the following props
+-Dcom.sun.management.jmxremote.ssl=false  -Dcom.sun.management.jmxremote.port=<PORT_NUM> -Dcom.sun.management.jmxremote.authenticate=false
+
+
+[ sysadmin ]
+
+-how to tell how much memory a solaris system has:
+ /usr/sbin/prtconf | grep Memory
+-how to determine udp buffer sizes on solaris
+ndd -set /dev/udp udp_xmit_hiwat 65536
+ndd -set /dev/udp udp_recv_hiwat 65536
+set udp:udp_xmit_hiwat=65536
+set udp:udp_recv_hiwat=65536
+-how to updrade OpenSolaris
+%sudo pfexec pkg install SUNWipkg
+%sudo pfexec pkg image-update
+-how to install studio express
+%sudo pfexec pkg install sunstudioexpress
+%sudo pfexec ln -s ../../opt/SunStudioExpress/bin/cc /usr/bin/cc  
+%sudo pfexec ln -s ../../opt/SunStudioExpress/bin/CC /usr/bin/CC
+%sudo pfexec ln -s ../../opt/SunStudioExpress/bin/dbx /usr/bin/dbx
+
+
+[ misc ]
+- cc testupd.c -g -m64 -I ~/Workspaces/libmemcached/head/libmemcached -lmemcached -o testupd
+-how to determine the file type of file (64bit, ELF, etc)
+  % file <PATH_TO_FILE>
+
+
+[ gnuplot ]
+- how to create postscript plot from a data file
+gnuplot> set terminal postscript 
+gnuplot> set output "file"
+gnuplot> plot "datafile" using 1:2:3  (using == column num)
+
+-urls
+http://t16web.lanl.gov/Kawano/gnuplot/index-e.html
+http://www.gnuplot.info/documentation.html
+
+
+[ cc ]
+-to have the compiler just pass a source file through the pre-processor (good to see how macro definitions will be evaluated), run cc -E
+
+
+[VirtualBox]
+
+with the guest instance shutdown, issue the following commands to enable ssh access to the guest OS thru NAT
+$ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config/ssh/HostPort" 2222
+$ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config/ssh/GuestPort" 22
+$ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config/ssh/Protocol" TCP
+
+
+[ Fedora ]
+-the fedora package manages is called yum. The steps I took to set up my environenment was 
+   12  yum clean all
+   13  sudo yum clean all
+   15  sudo yum clean all
+   16  sudo yum check-update
+   19  sudo  yum install hg
+   21  sudo yum install git
+   28  sudo yum install gcc
+   29  sudo yum install libevent
+   30  sudo yum install libevent
+   34  sudo yum install wget
+   83  sudo yum install gmake
+   85  sudo yum install automake
+   87  sudo  yum groupinstall "Development Tools"
+   88  history | egrep yum
+
+-to enable sshd in fedora do the following
+1) System->Administration->Services, find opensshd, *enable*  it and then *start it*
+2) makes sure that the firewall has 22 open System->administration->firewall
+
+- install cpan on yum $ sudo yum install perl-CPAN
+
+
+[ dbx ]
+-to list active threads 
+(dbx) threads 
+ >    t@1  a  l@1   ?()   LWP suspended in  _portfs() 
+      t@2  a  l@2   worker_libevent()   LWP suspended in  _portfs() 
+o     t@3  a  l@3   worker_libevent()   signal SIGSEGV in  server_stats() 
+      t@4  a  l@4   worker_libevent()   LWP suspended in  _portfs() 
+      t@5  a  l@5   worker_libevent()   LWP suspended in  _portfs() 
+      t@6  a  l@6   assoc_maintenance_thread()   sleep on 0x100121310  in  __lwp_park() 
+      t@7  b  l@7   umem_update_thread()   sleep on (unknown) in  __lwp_park() 
+-to change to a particular thread 
+(dbx) thread <tid>
+
+
+[ubuntu]
+-Network stuff
+elambert@geek:~$ cat /etc/network/interfaces 
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet static
+address 129.144.88.67
+netmask 255.255.254.0
+network 129.144.88.0
+broadcast 129.255.255.255
+gateway 129.144.88.1
+elambert@geek:~$ 
+http://www.cyberciti.biz/tips/howto-ubuntu-linux-convert-dhcp-network-configuration-to-static-ip-configuration.html
+
+restart network
+$ sudo /etc/init.d/networking restart
+
+
+[ screen ]
+how to set up a multiuser screen session 
+-start the screen session in detached mode > screen -d -m bash
+-determine the session name > screen -ls
+-attach to the session > screen -r <session_id>
+-in the screen session, turn on multi-user mode [ctr-a :] multiuser on
+-add the user in question [ctrl-a :] acladd <username>
+-have user attach to session > screen -x <your_user_id>/<session>
+http://aperiodic.net/screen/multiuser
+
+
+[ git ]
+
+How to create a new branch and push it to github
+-create branch: 
+ git branch <name_of_new_branch>
+-verify branch: 
+ git branch
+-checkout branch: 
+ git checkout <name_of_new_branch>
+-push branch to github: 
+ git push origin <name_of_new_branch>
+ git push --force elambert trond_engine
+-add a remote  
+ git remote add trondn git://github.com/trondn/memcached.git
+-get the remote  
+ git fetch trondn
+-create a local copy of a remote
+ git checkout --track -b <local_name> <remote_name>
+ git checkout --track -b dustin_engine dustin/engine
+
+ 
+How to remove a branch from the remote repository
+ git push origin :<branch_name>
+
+Short hand for prior commit HEAD^
+
+How to export a set diffs as mail patch and then import them
+
+    % git format-patch <FROM_REV>
+
+  This will create a series of patchs, one for each commit. To import the
+  patch:
+  
+    % git am <PATCH>
+ 
+
+[ linux / glibc ]
+- redhat source locations http://sources.redhat.com/glibc/ ||     git clone git://sources.redhat.com/git/glibc.git
+- to build glibc
+  * check out source from repository
+  * make a build directory (not advised to build in src dir)
+  * cd to build dir and execute the following to configure your build
+  *  <relative_path_glib_ws>/configure --prefix=/usr/local/glib --build=i686-pc-linux-gnu --enable-shared --enable-profile --disable-bounded --enable-bind-now --enable-add-ons=nptl,libidn --enable-kernel=2.6.27
+  * from build dir, run make  
+  * good email thread on building glibc: http://sourceware.org/ml/libc-help/2009-02/msg00003.html
+
+[ perl ]
+-to install a cpan  sudo perl -MCPAN -e shell , from the shell type > install <MOD_NAME> (name is case sensitive)  
+
+
+[ mac/os x]
+-to enable core files on OS X, add COREDUMPS=-YES- to /etc/hostconfig (http://developer.apple.com/documentation/Darwin/Reference/Manpages/man5/core.5.html) 
+
+[ drizzle ] 
+-the command line to configure drizzle on my mac (assumes protobufs have been built and libdrizzle exists in /Users/elambert/dev/drizzle)
+ LDFLAGS=-L/usr/lib ./configure --with-libprotobuf-prefix=/usr/local  --with-libpcre-prefix=/usr/local --with-libevent-prefix=/usr/local --with-libdrizzle-prefix=/Users/elambert/dev/drizzle --prefix=/Users/elambert/dev/drizzle
+
+-start drizzled
+ ./drizzled --no-defaults --port=9306 --basedir=/var/tmp/drizzled --datadir=/var/tmp/drizzled/var
+
+-start drizzled with plugin enabled
+  /Users/elambert/dev/drizzle/sbin/drizzled --no-defaults --basedir=/Users/elambert/dev/drizzle --datadir=/tmp/drizzledb/ --replication-applier-gearman-enable --replication_applier_gearman_server_hosts="127.0.0.1"
+
+-configure drizzle to build plugins
+ ./configure --with-libgearman-prefix=/Users/elambert/dev/gearman --with-lib-prefix=/Users/elambert/dev/readline-6.0 --with-libdrizzle-prefix=/Users/elambert/dev/drizzle --with-replication-applier-gearman-plugin  --prefix=/Users/elambert/dev/drizzle
+
+[bzr]
+-how to associate a commit with a bug
+ bzr ci --fixes lp:#######
+-how to associate a merge with an individual
+ --author
+
+[vi/vim]
+-how to manually insert a unicode character in vim
+ make sure you are in insert mode
+ ctrl-v
+ type in u#### where #### is the unicode value
+-how to set filencoding value (in case you a conversion error when saving)
+:set fenc=utf-8
+
+[memcached]
+-how to store an item in mc using nc
+ printf "set key1 0 0 3\r\nfoo\r\n" | nc 127.0.0.1 11212
+
+[buildbot]
+- how to create and start a slave (assumes buildbut already installed on 
+  machine)
+
+  $  buildbot create-slave <PATH_TO_DIR> <MASTER:PORT> <SLAVENAME> <PASS>
+  $  buildbot create-slave /home/buildbot/buildbot-slave/ localhost:8010 ubuntu_32 omgsux
+  
+  The <SLAVENAME> adn <PASS> need to match what exists in the master.cfg
+
+  $ make start
+
+[perl modules on mt]
+Needed to install some perl modules on MT to enable SMTP/TLS mail for bugzilla
+-log into mt
+-cd to ~/data/modules
+-wget  wget http://search.cpan.org/CPAN/authors/id/A/AW/AWESTHOLM/Net-SMTP-TLS-0.12.tar.gz
+-tar zxf Net-SMTP-TLS-0.12.tar.gz
+-cd Net-SMTP-TLS-0.12
+-perl Makefile.PL PREFIX=/home/78608/data/modules
+-make 
+-make install
+-cd ..
+-wget http://search.cpan.org/CPAN/authors/id/K/KW/KWILLIAMS/Module-Build-0.2808_01.tar.gz
+-tar xzf Module-Build-0.2808_01.tar.gz 
+-perl Makefile.PL PREFIX=/home/78608/data/modules
+-make
+-make install
+-cd ..
+-wget http://search.cpan.org/CPAN/authors/id/F/FA/FAYLAND/Email-Send-SMTP-TLS-0.03.tar.gz
+-cd Email-Send-SMTP-TLS-0.03
+-perl Build.PL --prefix /home/78608/data/modules
+-./Build 
+-./Build test
+-./Build install
+
+[ssh]
+-config file
+host *.amazonaws.com
+        User root
+        StrictHostKeyChecking no
+        IdentityFile ~/.ssh/ustest20090719.pem
+
+-how to set up passwordless ssh
+ cp *.pub into .ssh
+ cat *.pub > .ssh/authorized_keys
+
+
+
+
