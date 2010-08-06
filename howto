@@ -155,6 +155,10 @@ $ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config
 $ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config/ssh/GuestPort" 22
 $ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config/ssh/Protocol" TCP
 
+[ yum ]
+-how to detrime the name of a yum package that provides a particular file
+  yum provides <file>
+
 
 [ Fedora ]
 -the fedora package manages is called yum. The steps I took to set up my environenment was 
@@ -178,6 +182,9 @@ $ VBoxManage setextradata <guestname> "VBoxInternal/Devices/pcnet/0/LUN#0/Config
 2) makes sure that the firewall has 22 open System->administration->firewall
 
 - install cpan on yum $ sudo yum install perl-CPAN
+
+- start a service 
+  service <service> start  (ex ... service network start)
 
 
 [ dbx ]
@@ -354,12 +361,34 @@ Needed to install some perl modules on MT to enable SMTP/TLS mail for bugzilla
 host *.amazonaws.com
         User root
         StrictHostKeyChecking no
-        IdentityFile ~/.ssh/ustest20090719.pem
+        IdentityFile ~/.ssh/<PEM|PUB FILE>
 
 -how to set up passwordless ssh
  cp *.pub into .ssh
  cat *.pub > .ssh/authorized_keys
 
+[ maven / mvn ]
+-how to display the effective POM used by a project
+  mvn help:effective-pom
 
+- how to reference env variables in a POM file
+  ${env.<VAR_NAME>}
 
+- how to reference project property/variable in a POM file
+  ${project.<VAR_NAME>}
 
+- how to reference setting property/variables in a POM file
+  ${settings.<VAR_NAME>}
+
+[ gdb ]
+
+-how to list all threads
+  (gdb) info threads
+
+-how to generate a backtrace for a multi-thread app
+  (gdb) thread apply all bt
+
+-how to log out gdb output to a file (defaults to gdb.txt)
+  (gdb) set logging on
+
+[ svn ]
